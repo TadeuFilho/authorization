@@ -4,18 +4,18 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+
+import static com.authorization.core.util.ConstantsUtil.*;
 
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum MerchantCategoryCode {
 
-    FOOD("Food", Arrays.asList("5411", "5412")),
-    MEAL("Meal", Arrays.asList("5811", "5812")),
-    DEFAULT("Cash", new ArrayList<>());
+    FOOD(ESTABLISHMENT_CLASSIFICATION_FOOD, ESTABLISHMENT_CLASSIFICATION_FOOD_CODES()),
+    MEAL(ESTABLISHMENT_CLASSIFICATION_MEAL, ESTABLISHMENT_CLASSIFICATION_MEAL_CODES()),
+    DEFAULT(ESTABLISHMENT_CLASSIFICATION_CASH, ESTABLISHMENT_CLASSIFICATION_CASH_EMPTY_LIST_CODES());
 
     private final String name;
     private final List<String> codes;
