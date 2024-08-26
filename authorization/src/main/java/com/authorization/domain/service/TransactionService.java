@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import static com.authorization.core.util.ConstantsUtil.*;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -36,15 +38,14 @@ public class TransactionService {
 
     }
 
-
     private void analiseTransaction(String mccCode, TransactionRequest transactionRequest, String mccName, Account account) {
         Transaction transaction;
         Account accountToUpdate = switch (mccCode.toUpperCase()) {
-            case "00" -> {
+            case APPROVED_TRANSACTION -> {
                 transaction = TransactionMapper.toApprovedTransactionEntity(transactionRequest, mccName);
                 yield AccountMapper.toUpdateAfterApprovedTransaction(account, account.getBalance().subtract(transactionRequest.getAmount()));
             }
-            case "51" -> {
+            case NOT_APPROVED_TRANSACTION_BY_LACK_OF_MONEY -> {
                 transaction = TransactionMapper.toNotApprovedByBalanceTransactionEntity(transactionRequest, mccName);
                 yield AccountMapper.toUpdateAfterNotApprovedTransaction(account);
             }
@@ -60,30 +61,27 @@ public class TransactionService {
         log.info("::: Banco atualizado :::");
     }
 
-
     private static TransactionResponse verifyTransactionIsApproved(TransactionRequest transactionRequest, Account account) {
-        if (account.getBalance().compareTo(transactionRequest.getAmount()) >= 0) {
-            log.info("::: Transação aprovada -> {} :::", transactionRequest);
-            return TransactionResponse
-                    .builder()
-                    .code("00")
-                    .build();
-
-        } else if (account.getBalance().compareTo(transactionRequest.getAmount()) < 0) {
-            log.info("::: Transação não aprovada por saldo inferior na conta -> {} :::", transactionRequest);
-            return TransactionResponse
-                    .builder()
-                    .code("51")
-                    .build();
-        } else {
-            log.info("::: Transação não aprovada -> {} :::", transactionRequest);
-            return TransactionResponse
-                    .builder()
-                    .code("07")
-                    .build();
-        }
-
+        return switch (account.getBalance().compareTo(transactionRequest.getAmount())) {
+            case 1, 0 -> {
+                log.info("::: Transação aprovada -> {} :::", transactionRequest);
+                yield TransactionResponse.builder()
+                        .code(APPROVED_TRANSACTION)
+                        .build();
+            }
+            case -1 -> {
+                log.info("::: Transação não aprovada por saldo inferior na conta -> {} :::", transactionRequest);
+                yield TransactionResponse.builder()
+                        .code(NOT_APPROVED_TRANSACTION_BY_LACK_OF_MONEY)
+                        .build();
+            }
+            default -> {
+                log.info("::: Transação não aprovada -> {} :::", transactionRequest);
+                yield TransactionResponse.builder()
+                        .code(NOT_APPROVED_TRANSACTION)
+                        .build();
+            }
+        };
     }
-
 }
 
